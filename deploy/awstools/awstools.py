@@ -151,7 +151,7 @@ def construct_instance_market_options(instancemarket, spotinterruptionbehavior, 
     else:
         assert False, "INVALID INSTANCE MARKET TYPE."
 
-def launch_instances(instancetype, count, instancemarket, spotinterruptionbehavior, spotmaxprice, blockdevices=None, tags=None, randomsubnet=False):
+def launch_instances(instancetype, count, instancemarket, spotinterruptionbehavior, spotmaxprice, blockdevices=None, tags=None, randomsubnet=False, ami=None):
     """ Launch count instances of type instancetype, optionally with additional
     block devices mappings and instance tags
 
@@ -175,7 +175,11 @@ def launch_instances(instancetype, count, instancemarket, spotinterruptionbehavi
         Filters=[{'Name':'group-name', 'Values': [securitygroupname]}])['SecurityGroups'][0]['GroupId']
 
     marketconfig = construct_instance_market_options(instancemarket, spotinterruptionbehavior, spotmaxprice)
-    f1_image_id = get_f1_ami_id()
+
+    if ami is None:
+        f1_image_id = get_f1_ami_id()
+    else:
+        f1_image_id = ami
 
     if blockdevices is None:
         blockdevices = []
@@ -472,6 +476,7 @@ def main(args):
     parser.add_argument("--block_devices", type=yaml.safe_load, default=run_block_device_dict(), help="List of dicts with block device information. Used by \'launch\'.")
     parser.add_argument("--tags", type=yaml.safe_load, default=run_tag_dict(), help="Dict of tags to add to instances. Used by \'launch\'.")
     parser.add_argument("--filters", type=yaml.safe_load, default=run_filters_list_dict(), help="List of dicts used to filter instances. Used by \'terminate\'.")
+    parser.add_argument("--ami", default=get_f1_ami_id(), help="AMI ID to use. Defaults to F1 AMI ID. Used by \'launch\'.")
     args = parser.parse_args(args)
 
     if args.command == "launch":
@@ -483,7 +488,8 @@ def main(args):
             args.spot_max_price,
             args.block_devices,
             args.tags,
-            args.random_subnet)
+            args.random_subnet,
+            args.ami)
         instids = get_instance_ids_for_instances(insts)
         print("Instance IDs: {}".format(instids))
         wait_on_instance_launches(insts)
